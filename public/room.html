@@ -36,7 +36,7 @@
                 </div>
             </div>
             <div class="" id="vcont2">
-                
+
             </div>
 
             <div class="whiteboard-cont"><canvas id="whiteboard" height="1000" width="1000"></canvas>
@@ -93,7 +93,7 @@
             <div class="head-title">
 
                 <div class="chats"><i class="fas fa-comment-alt mr-1"></i>聊天</div>
-                <div class="attendies"><i class="fas fa-users mr-1"></i>用户列表</div>
+                <!-- <div class="attendies"><i class="fas fa-users mr-1"></i>用户列表</div> -->
 
 
             </div>
@@ -110,7 +110,7 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="js/room.js"></script>
     <style>
-        #vcont2{
+        #vcont2 {
             position: fixed;
             left: 0;
             top: 0;
@@ -121,13 +121,26 @@
             width: 100px;
             overflow: auto;
         }
-        #vcont2 .video-box, #vcont2 .video-frame{
+
+        #vcont2 .video-box,
+        #vcont2 .video-frame {
             min-height: 80px;
             height: 80px;
         }
-        .container-room{
+
+        .container-room {
             height: 100%;
             overflow: hidden;
+        }
+
+
+        #main-speaker-active,
+        .video-box.main-speaker-active {
+            border: 3px solid #4ECCA3 !important;
+            box-shadow: 0 0 15px rgba(78, 204, 163, 0.6);
+            transform: scale(1.05);
+            transition: all 0.2s;
+            z-index: 20;
         }
     </style>
 </body>

@@ -259,6 +259,8 @@ function startCall() {
             myvideo.srcObject = localStream;
             myvideo.muted = true;
 
+            // ===== 关键：这里加上 =====
+            addMyOwnSmallVideo();
             localStream.getTracks().forEach(track => {
                 for (let key in connections) {
                     connections[key].addTrack(track, localStream);
@@ -568,6 +570,7 @@ socket.on('join room', async (conc, cnames, micinfo, videoinfo) => {
             .then(localStream => {
                 myvideo.srcObject = localStream;
                 myvideo.muted = true;
+                addMyOwnSmallVideo();
                 mystream = localStream;
             })
             .catch(handleGetUserMediaError);
@@ -729,3 +732,101 @@ whiteboardButt.addEventListener('click', () => {
 cutCall.addEventListener('click', () => {
     location.href = '/';
 })
+
+
+// ============ 最佳实践：事件委托实现点击切换主画面 ============
+videoContainer.addEventListener('click', (e) => {
+    const videoBox = e.target.closest('.video-box');
+    if (!videoBox) return;
+
+    const sid = videoBox.id;
+    const mainVideo = document.querySelector("#vd1");
+    const mainNameTag = document.querySelector("#myname");
+
+    let targetStream = null;
+    let speakerName = `${username} (您)`;
+
+    // 关键修复：点击自己的小视频（固定 id）也要切回自己
+    if (!sid || sid === 'myOwnSmallVideo') {
+        // 是自己
+        targetStream = mystream;
+    } else {
+        // 是别人
+        const remoteVideo = document.querySelector(`#video${sid}`);
+        if (remoteVideo && remoteVideo.srcObject) {
+            targetStream = remoteVideo.srcObject;
+            speakerName = (cName[sid] || "用户") + " (主讲人)";
+        }
+    }
+
+    if (targetStream) {
+        mainVideo.srcObject = targetStream;
+        mainNameTag.innerHTML = speakerName;
+    }
+
+    // 高亮处理
+    document.querySelectorAll("#vcont2 .video-box").forEach(b => 
+        b.classList.remove("main-speaker-active")
+    );
+    videoBox.classList.add("main-speaker-active");
+});
+
+
+
+// 在你第一次成功拿到本地流的地方加上这块代码
+// 目前你有两个地方会获取 mystream：
+// 1. startCall() 里
+// 2. join room 里等待别人加入时
+
+// 把下面这个函数抽出来，方便两个地方调用
+function addMyOwnSmallVideo() {
+    // 防止重复添加（比如重新开启摄像头时）
+    if (document.getElementById('myOwnSmallVideo')) return;
+
+    const mySmallBox = document.createElement('div');
+    mySmallBox.id = 'myOwnSmallVideo';           // 固定 id，方便判断
+    mySmallBox.classList.add('video-box');
+    mySmallBox.title = '点击可切换回自己';
+
+    const mySmallVideo = document.createElement('video');
+    mySmallVideo.classList.add('video-frame');
+    mySmallVideo.autoplay = true;
+    mySmallVideo.playsinline = true;
+    mySmallVideo.muted = true;                    // 小视频也静音，避免回音
+    mySmallVideo.srcObject = mystream;            // 直接用自己的流
+
+    const myNameTag = document.createElement('div');
+    myNameTag.classList.add('nametag');
+    myNameTag.innerHTML = `${username} (我)`;
+
+    // 麦克风和摄像头关闭图标复用你已有的逻辑
+    const myMuteIcon = document.createElement('div');
+    myMuteIcon.classList.add('mute-icon');
+    myMuteIcon.innerHTML = `<i class="fas fa-microphone-slash"></i>`;
+    myMuteIcon.style.visibility = audioAllowed ? 'hidden' : 'visible';
+
+    const myVideoOff = document.createElement('div');
+    myVideoOff.classList.add('video-off');
+    myVideoOff.innerHTML = '摄像头已关闭';
+    myVideoOff.style.visibility = videoAllowed ? 'hidden' : 'visible';
+
+    mySmallBox.appendChild(mySmallVideo);
+    mySmallBox.appendChild(myNameTag);
+    mySmallBox.appendChild(myMuteIcon);
+    mySmallBox.appendChild(myVideoOff);
+
+    // 插到左侧列表最上面（或最下面，随你喜好）
+    videoContainer.insertBefore(mySmallBox, videoContainer.firstChild);
+
+    // 点击自己的小视频 → 切回主画面看自己
+    mySmallBox.onclick = () => {
+        document.querySelector("#vd1").srcObject = mystream;
+        document.querySelector("#myname").innerHTML = `${username} (您)`;
+
+        // 高亮自己，去掉其他人高亮
+        document.querySelectorAll("#vcont2 .video-box").forEach(b => 
+            b.classList.remove("main-speaker-active")
+        );
+        mySmallBox.classList.add("main-speaker-active");
+    };
+}
