@@ -285,7 +285,7 @@ navbar .logo {
   width: 80%;
   background-color: #393e46;
   height: 100vh;
-  padding: 50px;
+  padding: 0 0 0 120px;
   text-align: center;
   position: relative;
 }
@@ -479,7 +479,7 @@ navbar .logo {
   bottom: 10px;
 }
 .container-room .left-cont .video-cont-single {
-  height: 75vh;
+  height: calc(100vh - 80px);
 }
 .container-room .left-cont .video-cont-single .video-box {
   background-color: #353b48;
@@ -524,13 +524,15 @@ navbar .logo {
   bottom: 10px;
 }
 .container-room .left-cont .footer {
-  position: relative;
+  position: fixed;
+  bottom: 0;
+  width: 100%;
 }
 .container-room .left-cont .footer .utils {
   text-align: center;
   margin: 0 auto;
   display: flex;
-  margin-top: 50px;
+  /* margin-top: 50px; */
   width: 260px;
   background-color: #ffffff;
   border-radius: 10px;
@@ -649,7 +651,7 @@ navbar .logo {
   outline: none;
 }
 .container-room .right-cont {
-  width: 30%;
+  width: 20%;
   background-color: #ffffff;
   height: 100vh;
   /* Track */
@@ -691,7 +693,7 @@ navbar .logo {
 }
 .container-room .right-cont .chat-cont {
   background-color: #ffffff;
-  height: 84vh;
+  height: 76vh;
   padding: 10px;
   padding-top: 10px;
   overflow-y: scroll;

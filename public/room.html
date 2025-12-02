@@ -35,6 +35,9 @@
                     <div class="video-off" id="myvideooff">关闭视频</div>
                 </div>
             </div>
+            <div class="" id="vcont2">
+                
+            </div>
 
             <div class="whiteboard-cont"><canvas id="whiteboard" height="1000" width="1000"></canvas>
                 <div class="colors-cont">
@@ -106,6 +109,27 @@
     </div>
     <script src="/socket.io/socket.io.js"></script>
     <script src="js/room.js"></script>
+    <style>
+        #vcont2{
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 10;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            width: 100px;
+            overflow: auto;
+        }
+        #vcont2 .video-box, #vcont2 .video-frame{
+            min-height: 80px;
+            height: 80px;
+        }
+        .container-room{
+            height: 100%;
+            overflow: hidden;
+        }
+    </style>
 </body>
 
 </html>
