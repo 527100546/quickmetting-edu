@@ -21,30 +21,62 @@ let roomBoard = {};
 
 io.on('connect', socket => {
 
-    socket.on("join room", (roomid, username) => {
+socket.on("join room", (roomid, username) => {
+    socket.join(roomid);
 
-        socket.join(roomid);
-        socketroom[socket.id] = roomid;
-        socketname[socket.id] = username;
-        micSocket[socket.id] = 'on';
-        videoSocket[socket.id] = 'on';
+    // ================== 第一步：彻底清除这个用户名在房间里的一切历史痕迹 ==================
+    if (rooms[roomid]) {
+        rooms[roomid] = rooms[roomid].filter(oldSocketId => {
+            if (socketname[oldSocketId] === username) {
+                console.log('【清理僵尸】移除旧用户:', oldSocketId, username);
 
-        if (rooms[roomid] && rooms[roomid].length > 0) {
-            rooms[roomid].push(socket.id);
-            socket.to(roomid).emit('message', `${username} 加入会议.`, '系统', moment().format(
-                "h:mm a"
-            ));
-            io.to(socket.id).emit('join room', rooms[roomid].filter(pid => pid != socket.id), socketname, micSocket, videoSocket);
-        }
-        else {
-            rooms[roomid] = [socket.id];
-            io.to(socket.id).emit('join room', null, null, null, null);
-        }
+                // 彻底删除这个旧 socket 的所有记录
+                delete socketroom[oldSocketId];
+                delete socketname[oldSocketId];
+                delete micSocket[oldSocketId];
+                delete videoSocket[oldSocketId];
 
-        io.to(roomid).emit('user count', rooms[roomid].length);
+                return false; // 从房间数组里移除
+            }
+            return true;
+        });
+    } else {
+        rooms[roomid] = [];
+    }
 
-    });
+    // ================== 第二步：注册当前这个新 socket ==================
+    socketroom[socket.id] = roomid;
+    socketname[socket.id] = username;
+    micSocket[socket.id] = 'on';
+    videoSocket[socket.id] = 'on';
+    rooms[roomid].push(socket.id);
 
+    // ================== 第三步：发给当前这个用户（包括刷新者）房间里所有真实在线的人 ==================
+    // 注意：这里发给他的列表里已经不包含任何同名旧用户了
+    const currentMembersExceptMe = rooms[roomid].filter(id => id !== socket.id);
+
+    if (currentMembersExceptMe.length > 0) {
+        // 构造干净的映射表
+        const names = {}, mics = {}, vids = {};
+        rooms[roomid].forEach(id => {
+            names[id] = socketname[id];
+            mics[id]  = micSocket[id];
+            vids[id]  = videoSocket[id];
+        });
+
+        io.to(socket.id).emit('join room', currentMembersExceptMe, names, mics, vids);
+        socket.to(roomid).emit('message', `${username} 重新连接`, '系统', moment().format("h:mm a"));
+    } else {
+        // 第一个进来的
+        io.to(socket.id).emit('join room', null, null, null, null);
+    }
+
+    // ================== 第四步：广播人数 + 白板同步 ==================
+    io.to(roomid).emit('user count', rooms[roomid].length);
+    if (roomBoard[roomid]) {
+        socket.emit('getCanvas', roomBoard[roomid]);
+    }
+});
     socket.on('action', msg => {
         if (msg == 'mute')
             micSocket[socket.id] = 'off';
@@ -92,22 +124,26 @@ io.on('connect', socket => {
     socket.on('store canvas', url => {
         roomBoard[socketroom[socket.id]] = url;
     })
+socket.on('disconnect', () => {
+    if (!socketroom[socket.id]) return;
 
-    socket.on('disconnect', () => {
-        if (!socketroom[socket.id]) return;
-        socket.to(socketroom[socket.id]).emit('message', `${socketname[socket.id]} left the chat.`, `系统`, moment().format(
-            "h:mm a"
-        ));
-        socket.to(socketroom[socket.id]).emit('remove peer', socket.id);
-        var index = rooms[socketroom[socket.id]].indexOf(socket.id);
-        rooms[socketroom[socket.id]].splice(index, 1);
-        io.to(socketroom[socket.id]).emit('user count', rooms[socketroom[socket.id]].length);
-        delete socketroom[socket.id];
-        console.log('--------------------');
-        console.log(rooms[socketroom[socket.id]]);
+    const roomid = socketroom[socket.id];
+    const username = socketname[socket.id];
 
-        //toDo: push socket.id out of rooms
-    });
+    // 彻底清理
+    if (rooms[roomid]) {
+        rooms[roomid] = rooms[roomid].filter(id => id !== socket.id);
+        io.to(roomid).emit('user count', rooms[roomid].length);
+    }
+
+    delete socketroom[socket.id];
+    delete socketname[socket.id];
+    delete micSocket[socket.id];
+    delete videoSocket[socket.id];
+
+    socket.to(roomid).emit('message', `${username} 离开会议.`, '系统', moment().format("h:mm a"));
+    console.log(username + ' 断开连接');
+});
 })
 
 
